@@ -58,8 +58,6 @@ def _make_llm() -> ChatOpenAI:
 def make_tools() -> list:
     """Wrap the three code tools as CrewAI tool objects and return them.
 
-    TODO: Implement this function.
-
     Steps:
     1. Use the @crewai_tool decorator (already imported as `crewai_tool`)
        to create three tool functions:
@@ -80,16 +78,28 @@ def make_tools() -> list:
             \"\"\"One-line description.\"\"\"
             return some_function(x)
 
-    Raises:
-        NotImplementedError: Remove this line once you implement the function.
     """
-    raise NotImplementedError("Implement make_tools()")
+
+    @crewai_tool
+    def crewai_read_file(path: str) -> str:
+      """Read a file from the sandbox workspace."""
+      return read_file(path)
+
+    @crewai_tool
+    def crewai_write_file(path: str, content: str) -> str:
+      """Write content to a file in the sandbox workspace."""
+      return write_file(path, content)
+
+    @crewai_tool
+    def crewai_exec_python(code: str) -> str:
+      """Execute a Python code snippet in a sandboxed subprocess."""
+      return exec_python(code)
+
+    return [crewai_read_file, crewai_write_file, crewai_exec_python]
 
 
 def make_agent(tools: list) -> Agent:
     """Create and return a CrewAI Agent for the coding task.
-
-    TODO: Implement this function.
 
     Steps:
     1. Create an Agent with:
@@ -103,16 +113,22 @@ def make_agent(tools: list) -> Agent:
        - max_iter=15
     2. Return the agent.
 
-    Raises:
-        NotImplementedError: Remove this line once you implement the function.
     """
-    raise NotImplementedError("Implement make_agent()")
+    return Agent(
+      role="Coder Agent",
+      goal="Complete the assigned coding task correctly and efficiently.",
+      backstory=(
+        "An expert Python developer who writes clean, tested code."
+      ),
+      tools=tools,
+      llm=_make_llm(),
+      verbose=True,
+      max_iter=15,
+    )
 
 
 def make_task(agent: Agent) -> Task:
     """Create and return a Task that assigns TASK_DESCRIPTION to the agent.
-
-    TODO: Implement this function.
 
     Steps:
     1. Create a Task with:
@@ -122,10 +138,14 @@ def make_task(agent: Agent) -> Task:
        - agent=agent
     2. Return the task.
 
-    Raises:
-        NotImplementedError: Remove this line once you implement the function.
     """
-    raise NotImplementedError("Implement make_task()")
+    return Task(
+      description=TASK_DESCRIPTION,
+      expected_output=(
+        "The word_freq.py module is written, tested, and produces correct output."
+      ),
+      agent=agent,
+    )
 
 
 # ---------------------------------------------------------------------------

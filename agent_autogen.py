@@ -83,8 +83,6 @@ calls – call the registered functions directly."""
 def make_assistant() -> AssistantAgent:
     """Create and return an AssistantAgent with the three tools registered.
 
-    TODO: Implement this function.
-
     Steps:
     1. Create an AssistantAgent with:
        - name="coder_agent"
@@ -97,16 +95,32 @@ def make_assistant() -> AssistantAgent:
              WRITE_FILE_SCHEMA, EXEC_PYTHON_SCHEMA).
     3. Return the agent.
 
-    Raises:
-        NotImplementedError: Remove this line once you implement the function.
     """
-    raise NotImplementedError("Implement make_assistant()")
+    assistant = AssistantAgent(
+        name="coder_agent",
+        system_message=SYSTEM_PROMPT,
+        llm_config=_llm_config(),
+    )
+    assistant.register_for_llm(
+        name="read_file",
+        description="Read a file from the sandbox workspace.",
+    )(read_file)
+    assistant.register_for_llm(
+        name="write_file",
+        description="Write content to a file in the sandbox workspace.",
+    )(write_file)
+    assistant.register_for_llm(
+        name="exec_python",
+        description=(
+            "Execute a Python code snippet in a sandboxed subprocess. "
+            "Returns stdout + stderr, truncated to 2 000 characters."
+        ),
+    )(exec_python)
+    return assistant
 
 
 def make_proxy() -> UserProxyAgent:
     """Create and return a UserProxyAgent that executes tool calls.
-
-    TODO: Implement this function.
 
     Steps:
     1. Create a UserProxyAgent with:
@@ -121,10 +135,20 @@ def make_proxy() -> UserProxyAgent:
        Register the same three functions as in make_assistant().
     3. Return the proxy.
 
-    Raises:
-        NotImplementedError: Remove this line once you implement the function.
     """
-    raise NotImplementedError("Implement make_proxy()")
+    proxy = UserProxyAgent(
+        name="user_proxy",
+        human_input_mode="NEVER",
+        max_consecutive_auto_reply=15,
+        is_termination_msg=lambda message: "DONE" in (
+            message.get("content") or ""
+        ),
+        code_execution_config=False,
+    )
+    proxy.register_for_execution(name="read_file")(read_file)
+    proxy.register_for_execution(name="write_file")(write_file)
+    proxy.register_for_execution(name="exec_python")(exec_python)
+    return proxy
 
 
 # ---------------------------------------------------------------------------

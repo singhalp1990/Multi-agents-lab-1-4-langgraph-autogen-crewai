@@ -19,6 +19,7 @@ Run:
 from __future__ import annotations
 
 import json
+import re
 import time
 from typing import Annotated, Literal
 
@@ -99,10 +100,33 @@ def agent_node(state: AgentState) -> dict:
        done=True in the returned state dict.
     7. Return {"messages": [response], "step_count": ..., "done": ...}.
 
-    Raises:
-        NotImplementedError: Remove this line once you implement the function.
     """
-    raise NotImplementedError("Implement agent_node()")
+    from langchain_core.messages import SystemMessage
+
+    model = ChatOpenAI(openai_client=get_client(), model=DEFAULT_MODEL)
+    model_with_tools = model.bind_tools(ALL_SCHEMAS)
+
+    messages = list(state["messages"])
+    if not messages or messages[0].type != "system":
+        messages.insert(0, SystemMessage(content=SYSTEM_PROMPT))
+
+    started_at = time.perf_counter()
+    response = model_with_tools.invoke(messages)
+    latency_s = time.perf_counter() - started_at
+
+    usage = response.response_metadata.get("token_usage", {})
+    tracker.record_step(
+        prompt_tokens=usage.get("prompt_tokens", 0),
+        completion_tokens=usage.get("completion_tokens", 0),
+        latency_s=latency_s,
+    )
+
+    done = state["done"] or bool(re.search(r"\bDONE\b", str(response.content)))
+    return {
+        "messages": [response],
+        "step_count": state["step_count"] + 1,
+        "done": done,
+    }
 
 
 # ---------------------------------------------------------------------------
